@@ -116,6 +116,61 @@ function createReceivedMessageElements(botResponses) {
   .filter(element => element !== null);
 }
 
+// Function to display bot responses recursively
+async function displayBotResponses(receivedMessages, index = 0) {
+  if (index >= receivedMessages.length) {
+    return [];
+  }
+
+  const messageElement = receivedMessages[index];
+
+  const timestampElement = messageElement.querySelector(".timestamp");
+  const avatarElement = messageElement.querySelector(".avatar");
+
+  timestampElement.remove();
+  avatarElement.remove();
+
+  const botMessage = messageElement.innerHTML.trim();
+  const botName = botMessage.split(":")[0].replace(/(<([^>]+)>)/gi, "").trim();
+
+  saveMessage(botName, botMessage);
+  
+  messageElement.appendChild(timestampElement);
+  messageElement.prepend(avatarElement);
+
+  const nextMessages = await displayBotResponses(receivedMessages, index + 1);
+  return [messageElement, ...nextMessages];
+}
+
+// Function to display messages recursively
+async function displayMessages(messagesData, index = 0, previousMessageDate = null) {
+  if (index >= messagesData.length) {
+    return [];
+  }
+
+  const { sender, content, timestamp } = messagesData[index];
+  const isUser = sender === 'user';
+  const cssClass = isUser ? 'sent' : 'received';
+  const bot = isUser ? null : bots.find(bot => bot.name === sender);
+  const avatarUrl = bot ? bot.avatar : null;
+  const messageDate = new Date(timestamp);
+
+  let dateElement = null;
+  if (!previousMessageDate || (previousMessageDate && messageDate.toDateString() !== previousMessageDate.toDateString())) {
+    dateElement = createDateElement(messageDate);
+    previousMessageDate = messageDate;
+  }
+
+  const messageElement = createMessageElement(content, cssClass, avatarUrl, messageDate);
+  const nextMessages = await displayMessages(messagesData, index + 1, messageDate);
+
+  if (dateElement) {
+    return [dateElement, messageElement, ...nextMessages];
+  } else {
+    return [messageElement, ...nextMessages];
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 4. API functions
 // ---------------------------------------------------------------------------
@@ -126,26 +181,8 @@ async function loadMessages() {
     const response = await axios.get('/api/getMessages');
     const messagesData = await response.data;
 
-    let previousMessageDate = null;
-
-    messagesData.forEach(messageData => {
-      const { sender, content, timestamp } = messageData;
-      const isUser = sender === 'user';
-      const cssClass = isUser ? 'sent' : 'received';
-      const bot = isUser ? null : bots.find(bot => bot.name === sender);
-      const avatarUrl = bot ? bot.avatar : null;
-      const messageDate = new Date(timestamp);
-
-      if (!previousMessageDate || messageDate.toDateString() !== previousMessageDate.toDateString()) {
-        const dateElement = createDateElement(messageDate);
-        messages.appendChild(dateElement);
-        previousMessageDate = messageDate;
-      }
-      
-      const messageElement = createMessageElement(content, cssClass, avatarUrl, messageDate);
-      messages.appendChild(messageElement);
-    });
-
+    const messageElements = await displayMessages(messagesData);
+    messages.append(...messageElements);
     messages.scrollTop = messages.scrollHeight;
   } catch (error) {
     console.error('Erreur lors du chargement des messages:', error);
@@ -187,23 +224,8 @@ async function sendMessage() {
 
   messages.removeChild(writingIndicator);
 
-  for (let i = 0; i < receivedMessages.length; i++) {
-    const messageElement = receivedMessages[i];
-    const timestampElement = messageElement.querySelector(".timestamp");
-    const avatarElement = messageElement.querySelector(".avatar");
-
-    timestampElement.remove();
-    avatarElement.remove();
-
-    const botMessage = messageElement.innerHTML.trim();
-    const botName = botMessage.split(":")[0].replace(/(<([^>]+)>)/gi, "").trim();
-
-    saveMessage(botName, botMessage);
-    messageElement.appendChild(timestampElement);
-    messageElement.prepend(avatarElement);
-  }
-
-  messages.append(...receivedMessages);
+  const finalMessages = await displayBotResponses(receivedMessages);
+  messages.append(...finalMessages);
   messages.scrollTop = messages.scrollHeight;
 }
 
