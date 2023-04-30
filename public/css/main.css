@@ -17,9 +17,9 @@ html {
 .received {
   width: fit-content;
   max-width: 45%;
-  padding: 0.5rem;
+  padding: 0.9rem;
   margin-bottom: 1rem;
-  border-radius: 5px;
+  border-radius: 30px;
   position: relative;
   animation: fadeIn 0.3s ease-out;
   word-wrap: break-word;
