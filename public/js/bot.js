@@ -22,6 +22,7 @@ export class Bot {
     ];
   }
 
+  // Function to handle a bot command 
   handleMessage(message) {
     const command = this.commands.find(
       cmd => message.toLowerCase().startsWith(cmd.keyword)
@@ -30,6 +31,7 @@ export class Bot {
   }
 }
 
+// Function to create a bot command
 function createBotCommand(keyword, execute, description) {
   return {
     keyword,

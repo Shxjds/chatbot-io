@@ -27,8 +27,12 @@ Create a `.env` file at the root of the project to define the API keys and other
 
 LASTFM_API_KEY=your_lastfm_api_key
 CHATGPT_API_KEY=your_chatgpt_api_key
+MONGODB_URI=your_mongodb_uri
+PORT=your_port
 
 Replace `your_lastfm_api_key` and `your_chatgpt_api_key` with the Last.fm and Chat GPT API keys you obtained when signing up for the services.
+Replace `your_mongodb_uri` with the MongoDB URI you obtained when creating a MongoDB Atlas cluster.
+Replace `your_port` with the port you want to use for the server.
 
 ## Launching the Project
 

@@ -5,6 +5,22 @@ const chatGPT = require('./api/chatgpt');
 const lastFM = require('./api/lastfm');
 const restCountries = require('./api/restcountries');
 const joke = require('./api/joke');
+const saveMessage = require('./api/saveMessage');
+const Message = require('./model/message');
+const mongoose = require('mongoose');
+
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('Connecté à MongoDB Atlas');
+});
+
+mongoose.connection.on('error', (error) => {
+  console.error('Erreur lors de la connexion à MongoDB Atlas:', error);
+});
 
 const app = express();
 app.use(express.static(path.join(__dirname, '..', 'public')));
@@ -32,7 +48,26 @@ app.get('/api/joke', async (req, res) => {
   res.json({ response });
 });
 
-const PORT = 3000;
+app.post('/api/saveMessage', async (req, res) => {
+  const { sender, content } = req.body;
+  try {
+    await saveMessage(sender, content);
+    res.status(200).send('Message enregistré avec succès');
+  } catch (error) {
+    res.status(500).send('Erreur lors de l\'enregistrement du message');
+  }
+});
+
+app.get('/api/getMessages', async (req, res) => {
+  try {
+    const messages = await Message.find().sort({ timestamp: 1 });
+    res.status(200).json(messages);
+  } catch (error) {
+    res.status(500).send('Erreur lors de la récupération des messages');
+  }
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Le serveur est démarré sur le port ${PORT}`);
 });

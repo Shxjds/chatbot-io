@@ -1,33 +1,50 @@
 import { Bot, botCommands } from './bot.js';
 
+// ---------------------------------------------------------------------------
+// 1. Data
+// ---------------------------------------------------------------------------
+
 const bots = [
-  new Bot('Bot 1', "https://cdn-icons-png.flaticon.com/512/4712/4712139.png", botCommands.bot1),
-  new Bot('Bot 2', "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Robot_icon.svg/800px-Robot_icon.svg.png", botCommands.bot2),
-  new Bot('Bot 3', "https://www.pngplay.com/wp-content/uploads/13/Bot-Angry-Icon-PNG-HD-Quality.png", botCommands.bot3),
+  new Bot('DJ Francis', "https://cdn-icons-png.flaticon.com/512/4712/4712139.png", botCommands.bot1),
+  new Bot('Petit blagueur', "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Robot_icon.svg/800px-Robot_icon.svg.png", botCommands.bot2),
+  new Bot('Géographe', "https://www.pngplay.com/wp-content/uploads/13/Bot-Angry-Icon-PNG-HD-Quality.png", botCommands.bot3),
 ];
 
 const messages =  document.getElementById("messages");
 const inputMessage = document.getElementById("input-message");
 const sendButton= document.getElementById("send-button");
 const botList = document.getElementById("bot-list");
+let lastMessageDate = localStorage.getItem("lastMessageDate") ? new Date(localStorage.getItem("lastMessageDate")) : null;
 
-// Fonction pour créer la liste des bots
+// ---------------------------------------------------------------------------
+// 2. Functions for DOM element creation
+// ---------------------------------------------------------------------------
+
+// Function to create a bot list item
 function createBotListItem(bot) {
   const listItem = document.createElement("li");
-  listItem.className = "list-group-item d-flex align-items-center";
+  listItem.style.paddingTop = "20px";
+  listItem.style.paddingBottom = "20px";
+  listItem.className = "list-group-item bg-transparent border-start-0 border-top-0 border-end-0 bottom-border rounded-0 d-flex align-items-center";
 
   const avatar = document.createElement("img");
   avatar.className = "rounded-circle mr-2";
   avatar.src = bot.avatar;
-  avatar.width = 50;
-  avatar.height = 50;
+  avatar.width = 60;
+  avatar.height = 60;
+  avatar.style.marginRight = "20px";
 
-  listItem.appendChild(avatar);
-  listItem.appendChild(document.createTextNode(bot.name));
+  const botName = document.createElement("span");
+  botName.style.color = "#f0f0f0";
+  botName.style.fontWeight = "bold";
+  botName.style.fontSize = "1.1rem";
+  botName.textContent = bot.name;
+
+  listItem.append(avatar, botName);
   return listItem;
 }
 
-// Fonction pour créer un message
+// Function to create a message element
 function createMessageElement(messageContent, cssClass, avatarUrl = null, date = new Date()) {
   const messageElement = document.createElement("div");
   messageElement.classList.add(cssClass);
@@ -44,75 +61,174 @@ function createMessageElement(messageContent, cssClass, avatarUrl = null, date =
   return messageElement;
 }
 
-// Fonction pour obtenir le contenu du message de l'utilisateur
+// Function to create a date element
+function createDateElement(date) {
+  const dateElement = document.createElement("div");
+  dateElement.classList.add("date-element");
+
+  const options = {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  };
+
+  const formattedDate = date.toLocaleDateString('fr-FR', options);
+  dateElement.textContent = formattedDate.replace(/\b\w/g, (l) => l.toUpperCase());
+  return dateElement;
+}
+
+// ---------------------------------------------------------------------------
+// 3. Utility functions
+// ---------------------------------------------------------------------------
+
+// Function to get the message content from the input
 function getUserMessage(input) {
   return input.value.trim();
 }
 
-// Fonction pour obtenir les réponses des bots
-async function getBotResponses(message, isWriting) {
-  return await Promise.all(bots.map(async bot => await bot.handleMessage(message, isWriting)));
+// Function to update the last message date
+function updateLastMessageDate(today) {
+  if (lastMessageDate === null || today.toDateString() !== lastMessageDate.toDateString()) {
+    const dateElement = createDateElement(today);
+    messages.appendChild(dateElement);
+    lastMessageDate = today;
+    localStorage.setItem("lastMessageDate", lastMessageDate);
+  }
 }
 
-// Fonction pour créer des messages à partir des réponses des bots
+// Function to get the bot responses
+async function getBotResponses(message) {
+  const responses = await Promise.all(bots.map(async bot => await bot.handleMessage(message)));
+  return responses.map((response, index) => ({ botIndex: index, response }));
+}
+
+// Function to create the bot responses elements
 function createReceivedMessageElements(botResponses) {
-  return botResponses
-    .map((response, index) => {
-      if (response) {
-        const messageContent = `<strong>${bots[index].name}:</strong> ${response}`;
-        return createMessageElement(messageContent, "received", bots[index].avatar);
-      }
-      return null;
-    })
-    .filter(element => element !== null);
+  return botResponses.map(({ botIndex, response }) => {
+    if (response) {
+      const bot = bots[botIndex];
+      const messageContent = `<strong>${bot.name}:</strong> ${response}`;
+      return createMessageElement(messageContent, "received", bot.avatar);
+    }
+    return null;
+  })
+  .filter(element => element !== null);
 }
 
-// Fonction impure pour mettre à jour le DOM
+// ---------------------------------------------------------------------------
+// 4. API functions
+// ---------------------------------------------------------------------------
+
+// Function to load the messages from the database
+async function loadMessages() {
+  try {
+    const response = await axios.get('/api/getMessages');
+    const messagesData = await response.data;
+
+    let previousMessageDate = null;
+
+    messagesData.forEach(messageData => {
+      const { sender, content, timestamp } = messageData;
+      const isUser = sender === 'user';
+      const cssClass = isUser ? 'sent' : 'received';
+      const bot = isUser ? null : bots.find(bot => bot.name === sender);
+      const avatarUrl = bot ? bot.avatar : null;
+      const messageDate = new Date(timestamp);
+
+      if (!previousMessageDate || messageDate.toDateString() !== previousMessageDate.toDateString()) {
+        const dateElement = createDateElement(messageDate);
+        messages.appendChild(dateElement);
+        previousMessageDate = messageDate;
+      }
+      
+      const messageElement = createMessageElement(content, cssClass, avatarUrl, messageDate);
+      messages.appendChild(messageElement);
+    });
+
+    messages.scrollTop = messages.scrollHeight;
+  } catch (error) {
+    console.error('Erreur lors du chargement des messages:', error);
+  }
+}
+
+// Function to save the message in the database
+async function saveMessage(sender, content) {
+  try {
+    const response = await axios.post('/api/saveMessage', { sender, content });
+    return response.data;
+  } catch (error) {
+    console.error('Erreur lors de l\'enregistrement du message: ', error);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 5. Main functions
+// ---------------------------------------------------------------------------
+
+// Function to send and display the message
 async function sendMessage() {
   const message = getUserMessage(inputMessage);
   if (message.length === 0) return;
 
-  // Afficher le message envoyé
-  messages.appendChild(createMessageElement(`You: ${message}`, "sent"));
+  updateLastMessageDate(new Date());
+
+  saveMessage("user", `<strong>Moi:</strong> ${message}`);
+  messages.appendChild(createMessageElement(`<strong>Moi:</strong> ${message}`, "sent"));
   inputMessage.value = "";
 
-   // Créer et afficher l'indicateur "en train d'écrire"
   const writingIndicator = createMessageElement("En train d'écrire...", "received");
   writingIndicator.classList.add("writing-indicator");
   messages.appendChild(writingIndicator);
   messages.scrollTop = messages.scrollHeight;
 
-  // Obtenir les réponses des bots et créer les éléments de message
   const botResponses = await getBotResponses(message);
   const receivedMessages = createReceivedMessageElements(botResponses);
 
-  // Supprimer l'indicateur "en train d'écrire"
   messages.removeChild(writingIndicator);
 
-  // Ajouter les messages reçus au DOM et mettre à jour l'interface utilisateur
+  for (let i = 0; i < receivedMessages.length; i++) {
+    const messageElement = receivedMessages[i];
+    const timestampElement = messageElement.querySelector(".timestamp");
+    const avatarElement = messageElement.querySelector(".avatar");
+
+    timestampElement.remove();
+    avatarElement.remove();
+
+    const botMessage = messageElement.innerHTML.trim();
+    const botName = botMessage.split(":")[0].replace(/(<([^>]+)>)/gi, "").trim();
+
+    saveMessage(botName, botMessage);
+    messageElement.appendChild(timestampElement);
+    messageElement.prepend(avatarElement);
+  }
+
   messages.append(...receivedMessages);
   messages.scrollTop = messages.scrollHeight;
 }
 
-// Charger les messages du localStorage
-const storedMessages = JSON.parse(localStorage.getItem("chatMessages"));
-if (storedMessages) {
-  messages.innerHTML = storedMessages;
-  messages.scrollTop = messages.scrollHeight;
-}
+// ---------------------------------------------------------------------------
+// 6. Event listeners and initialization
+// ---------------------------------------------------------------------------
 
-// Enregistrer les messages dans le localStorage quand la fenêtre est fermée
-window.addEventListener("unload", () => {
-  localStorage.setItem("chatMessages", JSON.stringify(messages.innerHTML));
-});
-
-// Ajouter les bots à la liste
-botList.append(...bots.map(createBotListItem));
-
-// Envoyer le message quand l'utilisateur appuie sur Entrée ou en cliquant sur le bouton
 inputMessage.addEventListener("keydown", (event) => {
   if (event.key === "Enter") {
     sendMessage();
   }
 });
 sendButton.addEventListener("click", sendMessage);
+
+botList.append(...bots.map(createBotListItem));
+loadMessages();
+
+/* // Load messages from localStorage
+const storedMessages = JSON.parse(localStorage.getItem("chatMessages"));
+if (storedMessages) {
+  messages.innerHTML = storedMessages;
+  messages.scrollTop = messages.scrollHeight;
+} */
+
+/* // Save messages in localStorage when the page is unloaded
+window.addEventListener("unload", () => {
+  localStorage.setItem("chatMessages", JSON.stringify(messages.innerHTML));
+}); */
