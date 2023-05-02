@@ -107,9 +107,7 @@ async function getBotResponses(message) {
 function createReceivedMessageElements(botResponses) {
   return botResponses.map(({ botIndex, response }) => {
     if (response) {
-      const bot = bots[botIndex];
-      const messageContent = `<strong>${bot.name}:</strong> ${response}`;
-      return createMessageElement(messageContent, "received", bot.avatar);
+      return { botIndex, response };
     }
     return null;
   })
@@ -122,21 +120,18 @@ async function displayBotResponses(receivedMessages, index = 0) {
     return [];
   }
 
-  const messageElement = receivedMessages[index];
+  const botResponse = receivedMessages[index];
 
-  const timestampElement = messageElement.querySelector(".timestamp");
-  const avatarElement = messageElement.querySelector(".avatar");
+  if (!botResponse || !(botResponse instanceof Object)) {
+    return await displayBotResponses(receivedMessages, index + 1);
+  }
 
-  timestampElement.remove();
-  avatarElement.remove();
+  const { botIndex, response } = botResponse;
+  const bot = bots[botIndex];
 
-  const botMessage = messageElement.innerHTML.trim();
-  const botName = botMessage.split(":")[0].replace(/(<([^>]+)>)/gi, "").trim();
-
-  saveMessage(botName, botMessage);
-  
-  messageElement.appendChild(timestampElement);
-  messageElement.prepend(avatarElement);
+  const botMessage = `<strong>${bot.name}:</strong> ${response}`;
+  saveMessage(bot.name, botMessage);
+  const messageElement = createMessageElement(botMessage, "received", bot.avatar);
 
   const nextMessages = await displayBotResponses(receivedMessages, index + 1);
   return [messageElement, ...nextMessages];
