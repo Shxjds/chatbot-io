@@ -67,6 +67,19 @@ app.get('/api/getMessages', async (req, res) => {
   }
 });
 
+app.get('/api/getLastMessageDate', async (req, res) => {
+  try {
+    const lastMessage = await Message.findOne().sort({ timestamp: -1 });
+    if (lastMessage) {
+      res.status(200).json({ lastMessageDate: lastMessage.timestamp });
+    } else {
+      res.status(200).json({ lastMessageDate: null });
+    }
+  } catch (error) {
+    res.status(500).send('Erreur lors de la récupération de la date du dernier message');
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Le serveur est démarré sur le port ${PORT}`);

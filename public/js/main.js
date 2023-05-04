@@ -14,7 +14,6 @@ const messages =  document.getElementById("messages");
 const inputMessage = document.getElementById("input-message");
 const sendButton= document.getElementById("send-button");
 const botList = document.getElementById("bot-list");
-let lastMessageDate = localStorage.getItem("lastMessageDate") ? new Date(localStorage.getItem("lastMessageDate")) : null;
 
 // ---------------------------------------------------------------------------
 // 2. Functions for DOM element creation
@@ -85,16 +84,6 @@ function createDateElement(date) {
 // Function to get the message content from the input
 function getUserMessage(input) {
   return input.value.trim();
-}
-
-// Function to update the last message date
-function updateLastMessageDate(today) {
-  if (lastMessageDate === null || today.toDateString() !== lastMessageDate.toDateString()) {
-    const dateElement = createDateElement(today);
-    messages.appendChild(dateElement);
-    lastMessageDate = today;
-    localStorage.setItem("lastMessageDate", lastMessageDate);
-  }
 }
 
 // Function to get the bot responses
@@ -203,7 +192,15 @@ async function sendMessage() {
   const message = getUserMessage(inputMessage);
   if (message.length === 0) return;
 
-  updateLastMessageDate(new Date());
+  const lastMessageDateResponse = await axios.get("/api/getLastMessageDate");
+  const lastMessageDateData = await lastMessageDateResponse.data;
+  const lastMessageDate = lastMessageDateData.lastMessageDate ? new Date(lastMessageDateData.lastMessageDate) : null;
+  const today = new Date();
+
+  if (lastMessageDate === null || today.toDateString() !== lastMessageDate.toDateString()) {
+    const dateElement = createDateElement(today);
+    messages.appendChild(dateElement);
+  }
 
   saveMessage("user", `<strong>Moi:</strong> ${message}`);
   messages.appendChild(createMessageElement(`<strong>Moi:</strong> ${message}`, "sent"));
