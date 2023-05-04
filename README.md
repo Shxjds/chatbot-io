@@ -1,6 +1,6 @@
 # Chatbot IO
 
-This project is a chat application that allows you to communicate with different bots. Each bot has specific commands and can interact with external APIs to obtain information and respond to user messages.
+This project is a chat application that allows you to communicate with different bots. Each bot has specific commands and can interact with external APIs to obtain information and respond to user messages. The website is deployed at https://chatbot-io.glitch.me/
 
 ## Prerequisites
 
