@@ -54,3 +54,4 @@ Bots have specific commands that you can use to interact with them:
 - `/quote`: Displays a quote from Albert Einstein.
 - `/weather`: Displays the beautiful weather.
 - `/time`: Displays the current time.
+- `/quoi`: All bots feur the user.

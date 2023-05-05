@@ -30,6 +30,7 @@ export class Bot {
           return 'Une erreur est survenue.';
         }
       }, 'Utilise ChatGPT.'),
+      createBotCommand('quoi', () => 'Feur', 'Feur l\'utilisateur'),
     ];
   }
 
