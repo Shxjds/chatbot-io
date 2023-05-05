@@ -50,7 +50,7 @@ Bots have specific commands that you can use to interact with them:
 - `/joke`: Displays a random joke.
 - `/country` + *country*: Displays information about a given country.
 - `/song`: Displays a random song from Last.fm.
-- `/gpt` + *prompt*: Allows all bots to respond using the GPT 3.5 API.
+- `/gpt "Bot Name"` + *prompt*: Allows a specific bot to respond using the GPT 3.5 API.
 - `/quote`: Displays a quote from Albert Einstein.
 - `/weather`: Displays the beautiful weather.
 - `/time`: Displays the current time.

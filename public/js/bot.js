@@ -9,9 +9,20 @@ export class Bot {
         const descriptions = this.commands.map(cmd => `${cmd.keyword}`).join(', ');
         return `Commandes disponibles:\n${descriptions}`;
       }, 'Affiche toutes les commandes disponibles.'),
-      createBotCommand('gpt', async function(message) {
+      createBotCommand('gpt', async (message) => {
+        const botName = message.match(/"([^"]+)"/);
+      
+        if (!botName) {
+          return "Veuillez spécifier le nom du bot à qui vous voulez poser la question en l'entourant de guillemets.";
+        }
+      
+        if (botName[1].toLowerCase() !== this.name.toLowerCase()) {
+          return null;
+        }
+      
+        const userInput = message.replace(/"([^"]+)"/, '').split(' ').slice(1).join(' ').trim();
+      
         try {
-          const userInput = message.split(' ').slice(1).join(' ');
           const response = await axios.post('/api/chatgpt', { message: userInput });
           return response.data.response;
         } catch (error) {
